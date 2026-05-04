@@ -106,16 +106,17 @@ CREATE TRIGGER trg_cr_updated_at
 `;
 
 async function migrate() {
-  const client = await pool.connect();
+  let client;
   try {
     console.log("[migrate] Running migrations...");
+    client = await pool.connect();
     await client.query(SQL);
     console.log("[migrate] ✓ All tables created / verified.");
   } catch (err) {
     console.error("[migrate] ✗ Migration failed:", err.message);
     process.exit(1);
   } finally {
-    client.release();
+    if (client) client.release();
     await pool.end();
   }
 }
