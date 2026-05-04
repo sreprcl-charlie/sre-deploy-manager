@@ -14,14 +14,12 @@ const isProd = process.env.NODE_ENV === "production";
 const corsOrigin = (origin, callback) => {
   // Di production: izinkan same-origin (origin null) dan FRONTEND_URL jika beda domain
   if (!origin) return callback(null, true);
-  if (!isProd && /^http:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+  if (!isProd && /^http:\/\/localhost(:\d+)?$/.test(origin))
+    return callback(null, true);
   const allowed = process.env.FRONTEND_URL;
   if (allowed && origin === allowed) return callback(null, true);
   // Same-origin request dari Railway (origin tidak dikirim)
   callback(null, true);
-};
-  if (allowed && origin === allowed) return callback(null, true);
-  callback(new Error("CORS not allowed"));
 };
 
 const io = new Server(server, {
