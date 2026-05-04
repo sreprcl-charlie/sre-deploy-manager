@@ -1,0 +1,13 @@
+{
+  "name": "sre-deploy-manager",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && node src/server.js",
+    "migrate": "cd backend && node src/db/migrate.js",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
