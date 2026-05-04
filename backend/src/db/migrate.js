@@ -105,25 +105,50 @@ CREATE TRIGGER trg_cr_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 `;
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function migrate() {
   if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
-    console.error("[migrate] ✗ No database configured. Set DATABASE_URL (Railway) or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD.");
+    console.error(
+      "[migrate] ✗ No database configured. Set DATABASE_URL (Railway) or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD.",
+    );
     process.exit(1);
   }
 
-  let client;
-  try {
-    console.log("[migrate] Running migrations...");
-    console.log("[migrate] Connecting to DB...", process.env.DATABASE_URL ? "(DATABASE_URL)" : `${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
-    client = await pool.connect();
-    await client.query(SQL);
-    console.log("[migrate] ✓ All tables created / verified.");
-  } catch (err) {
-    console.error("[migrate] ✗ Migration failed:", err.message || err.code || JSON.stringify(err));
-    process.exit(1);
-  } finally {
-    if (client) client.release();
-    await pool.end();
+  const maxRetries = 10;
+  const retryDelay = 3000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let client;
+    try {
+      console.log(`[migrate] Running migrations... (attempt ${attempt}/${maxRetries})`);
+      console.log(
+        "[migrate] Connecting to DB...",
+        process.env.DATABASE_URL
+          ? "(DATABASE_URL)"
+          : `${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+      );
+      client = await pool.connect();
+      await client.query(SQL);
+      console.log("[migrate] ✓ All tables created / verified.");
+      client.release();
+      await pool.end();
+      return;
+    } catch (err) {
+      if (client) client.release();
+      console.error(
+        `[migrate] ✗ Attempt ${attempt} failed:`,
+        err.message || err.code || JSON.stringify(err),
+      );
+      if (attempt < maxRetries) {
+        console.log(`[migrate] Retrying in ${retryDelay / 1000}s...`);
+        await sleep(retryDelay);
+      } else {
+        console.error("[migrate] ✗ All retries exhausted. Exiting.");
+        await pool.end().catch(() => {});
+        process.exit(1);
+      }
+    }
   }
 }
 
