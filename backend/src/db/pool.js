@@ -1,5 +1,7 @@
 const { Pool } = require("pg");
-require("dotenv").config();
+require("dotenv").config({
+  path: require("path").join(__dirname, "../../.env"),
+});
 
 // Railway menyediakan DATABASE_URL; fallback ke individual vars untuk dev lokal
 const pool = process.env.DATABASE_URL
