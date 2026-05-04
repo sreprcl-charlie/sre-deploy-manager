@@ -106,14 +106,20 @@ CREATE TRIGGER trg_cr_updated_at
 `;
 
 async function migrate() {
+  if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
+    console.error("[migrate] ✗ No database configured. Set DATABASE_URL (Railway) or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD.");
+    process.exit(1);
+  }
+
   let client;
   try {
     console.log("[migrate] Running migrations...");
+    console.log("[migrate] Connecting to DB...", process.env.DATABASE_URL ? "(DATABASE_URL)" : `${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
     client = await pool.connect();
     await client.query(SQL);
     console.log("[migrate] ✓ All tables created / verified.");
   } catch (err) {
-    console.error("[migrate] ✗ Migration failed:", err.message);
+    console.error("[migrate] ✗ Migration failed:", err.message || err.code || JSON.stringify(err));
     process.exit(1);
   } finally {
     if (client) client.release();
