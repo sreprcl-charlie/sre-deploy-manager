@@ -103,6 +103,14 @@ DROP TRIGGER IF EXISTS trg_cr_updated_at ON change_requests;
 CREATE TRIGGER trg_cr_updated_at
   BEFORE UPDATE ON change_requests
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ─────────────────────────────────────────────
+-- MIGRATION: Step progress tracking flags
+-- ─────────────────────────────────────────────
+ALTER TABLE deployment_steps
+  ADD COLUMN IF NOT EXISTS is_adjusted BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS is_edited   BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS edit_reason TEXT;
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -121,7 +129,9 @@ async function migrate() {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     let client;
     try {
-      console.log(`[migrate] Running migrations... (attempt ${attempt}/${maxRetries})`);
+      console.log(
+        `[migrate] Running migrations... (attempt ${attempt}/${maxRetries})`,
+      );
       console.log(
         "[migrate] Connecting to DB...",
         process.env.DATABASE_URL

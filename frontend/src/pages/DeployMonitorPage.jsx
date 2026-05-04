@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Timer,
+  Edit2,
+  MessageSquare,
 } from "lucide-react";
 
 const SEVERITY_COLORS = {
@@ -103,9 +105,27 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 // ── Step Card ─────────────────────────────────────────────────────────────────
-function StepCard({ step, onAction, disabled }) {
+function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(null); // { status, label }
+
+  // Post-completion adjustment
+  const [showAdjustPanel, setShowAdjustPanel] = useState(false);
+  const [adjustNote, setAdjustNote] = useState("");
+  const [savingAdjust, setSavingAdjust] = useState(false);
+
+  // Content edit
+  const [showEditPanel, setShowEditPanel] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [editFields, setEditFields] = useState({
+    description: step.description || "",
+    command: step.command || "",
+    expected_result: step.expected_result || "",
+    rollback_cmd: step.rollback_cmd || "",
+    duration_min: step.duration_min || 5,
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const timer = useStepTimer(step.duration_min);
 
   const isActive = step.status === "in_progress";
@@ -114,6 +134,22 @@ function StepCard({ step, onAction, disabled }) {
   const isSkipped = step.status === "skipped";
   const isFinished = isDone || isFailed || isSkipped;
 
+  // Overtime: countdown hit zero while step is still active
+  const isOvertime = timer.remaining === 0 && timer.pct === 100 && isActive;
+
+  // Sync edit fields every time the panel opens
+  useEffect(() => {
+    if (showEditPanel) {
+      setEditFields({
+        description: step.description || "",
+        command: step.command || "",
+        expected_result: step.expected_result || "",
+        rollback_cmd: step.rollback_cmd || "",
+        duration_min: step.duration_min || 5,
+      });
+    }
+  }, [showEditPanel]);
+
   // Auto-stop timer when step finishes
   useEffect(() => {
     if (isFinished) timer.stop();
@@ -121,12 +157,63 @@ function StepCard({ step, onAction, disabled }) {
 
   const requestAction = (status, label) => setConfirm({ status, label });
 
+  const getElapsedStr = () => {
+    if (!step.started_at) return "";
+    const elapsed = Math.floor((Date.now() - new Date(step.started_at)) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    return `${m}m ${s}s`;
+  };
+
   const doAction = () => {
-    onAction(step.id, confirm.status, notes);
+    const elapsedStr =
+      confirm.status !== "in_progress" ? getElapsedStr() : undefined;
+    onAction(step.id, confirm.status, notes, elapsedStr);
     if (confirm.status !== "in_progress") setNotes("");
     if (confirm.status === "in_progress") timer.start();
-    if (confirm.status !== "in_progress") timer.stop();
+    else timer.stop();
     setConfirm(null);
+  };
+
+  const submitAdjustment = async () => {
+    if (!adjustNote.trim()) return;
+    setSavingAdjust(true);
+    try {
+      await onAddAdjustment(step.id, adjustNote.trim());
+      setAdjustNote("");
+      setShowAdjustPanel(false);
+    } finally {
+      setSavingAdjust(false);
+    }
+  };
+
+  const submitEdit = async () => {
+    if (!editReason.trim()) return;
+    const changed = {};
+    if (editFields.description !== (step.description || ""))
+      changed.description = editFields.description;
+    if (editFields.command !== (step.command || ""))
+      changed.command = editFields.command;
+    if (editFields.expected_result !== (step.expected_result || ""))
+      changed.expected_result = editFields.expected_result;
+    if (editFields.rollback_cmd !== (step.rollback_cmd || ""))
+      changed.rollback_cmd = editFields.rollback_cmd;
+    if (Number(editFields.duration_min) !== step.duration_min)
+      changed.duration_min = Number(editFields.duration_min);
+
+    if (Object.keys(changed).length === 0) {
+      toast("Tidak ada perubahan yang disimpan");
+      setShowEditPanel(false);
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await onEditStep(step.id, changed, editReason.trim());
+      setEditReason("");
+      setShowEditPanel(false);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const timerColor =
@@ -135,6 +222,18 @@ function StepCard({ step, onAction, disabled }) {
       : timer.pct >= 80
         ? "text-amber-400"
         : "text-emerald-400";
+
+  const borderClass = (() => {
+    if (isActive)
+      return "border-amber-500/50 bg-amber-950/20 shadow-lg shadow-amber-950/20";
+    if (isDone && step.is_adjusted)
+      return "border-amber-500/40 bg-emerald-950/10";
+    if (isDone) return "border-emerald-700/30 bg-emerald-950/10";
+    if (isFailed) return "border-red-700/30 bg-red-950/10";
+    if (isSkipped) return "border-slate-700/20 bg-slate-800/30 opacity-60";
+    if (step.is_edited) return "border-indigo-700/40 bg-slate-800/50";
+    return "border-slate-700/50 bg-slate-800/50";
+  })();
 
   return (
     <>
@@ -147,17 +246,7 @@ function StepCard({ step, onAction, disabled }) {
       )}
 
       <div
-        className={`relative border rounded-xl p-4 transition-all ${
-          isActive
-            ? "border-amber-500/50 bg-amber-950/20 shadow-lg shadow-amber-950/20"
-            : isDone
-              ? "border-emerald-700/30 bg-emerald-950/10"
-              : isFailed
-                ? "border-red-700/30 bg-red-950/10"
-                : isSkipped
-                  ? "border-slate-700/20 bg-slate-800/30 opacity-60"
-                  : "border-slate-700/50 bg-slate-800/50"
-        }`}
+        className={`relative border rounded-xl p-4 transition-all ${borderClass}`}
       >
         {/* Step number + title */}
         <div className="flex items-start gap-3">
@@ -176,17 +265,161 @@ function StepCard({ step, onAction, disabled }) {
           </div>
 
           <div className="flex-1 min-w-0">
+            {/* Title row */}
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-semibold text-slate-200">{step.title}</p>
               <StatusBadge status={step.status} />
+              {step.is_adjusted && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-400 border border-amber-700/40 font-medium">
+                  Adjusted
+                </span>
+              )}
+              {step.is_edited && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-900/50 text-indigo-400 border border-indigo-700/40 font-medium">
+                  Edited
+                </span>
+              )}
+              {!disabled && !showEditPanel && (
+                <button
+                  onClick={() => setShowEditPanel(true)}
+                  className="ml-auto text-slate-600 hover:text-indigo-400 transition-colors p-0.5"
+                  title="Edit isi step"
+                >
+                  <Edit2 size={13} />
+                </button>
+              )}
             </div>
-            {step.description && (
+
+            {/* Edit reason info */}
+            {step.is_edited && step.edit_reason && (
+              <div className="mt-0.5 text-xs text-indigo-400/70 flex items-center gap-1">
+                <Edit2 size={10} /> Alasan edit: {step.edit_reason}
+              </div>
+            )}
+
+            {/* ── Edit panel ── */}
+            {showEditPanel && (
+              <div className="mt-3 space-y-2 bg-slate-900/60 rounded-lg p-3 border border-indigo-700/30">
+                <p className="text-xs text-indigo-400 font-medium flex items-center gap-1">
+                  <Edit2 size={11} /> Edit Isi Step
+                  <span className="text-slate-600 font-normal ml-1">
+                    (akan di-flag sebagai Edited)
+                  </span>
+                </p>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Deskripsi
+                  </label>
+                  <textarea
+                    className="input text-sm resize-none w-full"
+                    rows={2}
+                    value={editFields.description}
+                    onChange={(e) =>
+                      setEditFields((f) => ({
+                        ...f,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Command
+                  </label>
+                  <input
+                    className="input text-sm font-mono w-full"
+                    value={editFields.command}
+                    onChange={(e) =>
+                      setEditFields((f) => ({ ...f, command: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Expected Result
+                  </label>
+                  <input
+                    className="input text-sm w-full"
+                    value={editFields.expected_result}
+                    onChange={(e) =>
+                      setEditFields((f) => ({
+                        ...f,
+                        expected_result: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Rollback Command
+                  </label>
+                  <input
+                    className="input text-sm font-mono w-full"
+                    value={editFields.rollback_cmd}
+                    onChange={(e) =>
+                      setEditFields((f) => ({
+                        ...f,
+                        rollback_cmd: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Durasi (menit)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input text-sm w-24"
+                    value={editFields.duration_min}
+                    onChange={(e) =>
+                      setEditFields((f) => ({
+                        ...f,
+                        duration_min: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-red-400 mb-0.5 block font-medium">
+                    * Alasan perubahan (wajib)
+                  </label>
+                  <input
+                    className="input text-sm w-full"
+                    placeholder="Kenapa isi step ini perlu diubah?"
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={submitEdit}
+                    disabled={!editReason.trim() || savingEdit}
+                    className="btn-primary text-xs flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {savingEdit ? "Menyimpan..." : "Simpan Perubahan"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowEditPanel(false);
+                      setEditReason("");
+                    }}
+                    className="btn-secondary text-xs"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!showEditPanel && step.description && (
               <p className="text-sm text-slate-400 mt-0.5">
                 {step.description}
               </p>
             )}
 
-            {step.command && (
+            {!showEditPanel && step.command && (
               <div className="mt-2 flex items-start gap-2 bg-slate-950 rounded-lg px-3 py-2">
                 <Terminal
                   size={13}
@@ -198,14 +431,14 @@ function StepCard({ step, onAction, disabled }) {
               </div>
             )}
 
-            {step.expected_result && (
+            {!showEditPanel && step.expected_result && (
               <p className="text-xs text-slate-500 mt-1.5">
                 <span className="text-slate-600">Expected: </span>
                 {step.expected_result}
               </p>
             )}
 
-            {step.rollback_cmd && (
+            {!showEditPanel && step.rollback_cmd && (
               <div className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600">
                 <RefreshCw size={10} />
                 <span className="font-mono">{step.rollback_cmd}</span>
@@ -296,10 +529,18 @@ function StepCard({ step, onAction, disabled }) {
                 )}
               </div>
             )}
+
+            {/* Overtime warning */}
+            {isOvertime && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-red-400 bg-red-950/30 border border-red-700/30 rounded px-2 py-1.5">
+                <AlertTriangle size={12} />
+                Waktu habis! Wajib isi catatan sebelum melanjutkan.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Actions */}
+        {/* ── Actions ── */}
         {!isFinished && !disabled && (
           <div className="mt-3 ml-11">
             {step.status === "pending" && (
@@ -313,24 +554,33 @@ function StepCard({ step, onAction, disabled }) {
             {step.status === "in_progress" && (
               <div className="space-y-2">
                 <textarea
-                  className="input text-sm resize-none"
+                  className={`input text-sm resize-none ${isOvertime ? "border-red-500/50 focus:border-red-500" : ""}`}
                   rows={2}
-                  placeholder="Catatan / hasil (opsional)..."
+                  placeholder={
+                    isOvertime
+                      ? "Wajib isi: alasan overtime / apa yang terjadi..."
+                      : "Catatan / hasil (opsional)..."
+                  }
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+                {isOvertime && !notes.trim() && (
+                  <p className="text-xs text-red-400">
+                    * Catatan wajib diisi karena melebihi waktu rundown
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() =>
-                      requestAction("completed", "Selesai / Success")
-                    }
-                    className="btn-success text-sm flex items-center gap-1.5 flex-1"
+                    onClick={() => requestAction("completed", "Finish")}
+                    disabled={isOvertime && !notes.trim()}
+                    className="btn-success text-sm flex items-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <CheckCircle size={13} /> Selesai
+                    <CheckCircle size={13} /> Finish
                   </button>
                   <button
                     onClick={() => requestAction("failed", "Gagal")}
-                    className="btn-danger text-sm flex items-center gap-1.5 flex-1"
+                    disabled={isOvertime && !notes.trim()}
+                    className="btn-danger text-sm flex items-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <XCircle size={13} /> Gagal
                   </button>
@@ -340,6 +590,52 @@ function StepCard({ step, onAction, disabled }) {
                     title="Skip step"
                   >
                     <SkipForward size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Post-completion adjustment ── */}
+        {isFinished && !disabled && (
+          <div className="mt-2 ml-11">
+            {!showAdjustPanel ? (
+              <button
+                onClick={() => setShowAdjustPanel(true)}
+                className="text-xs flex items-center gap-1 text-slate-600 hover:text-amber-400 transition-colors"
+              >
+                <MessageSquare size={11} /> Tambah Catatan Adjustment
+              </button>
+            ) : (
+              <div className="space-y-2 bg-amber-950/20 rounded-lg p-3 border border-amber-800/30">
+                <p className="text-xs text-amber-400 font-medium">
+                  Catatan Adjustment
+                </p>
+                <textarea
+                  className="input text-sm resize-none"
+                  rows={2}
+                  placeholder="Apa yang perlu dicatat sebagai adjustment?"
+                  value={adjustNote}
+                  onChange={(e) => setAdjustNote(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={submitAdjustment}
+                    disabled={!adjustNote.trim() || savingAdjust}
+                    className="btn-primary text-xs flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {savingAdjust ? "Menyimpan..." : "Simpan"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAdjustPanel(false);
+                      setAdjustNote("");
+                    }}
+                    className="btn-secondary text-xs"
+                  >
+                    Batal
                   </button>
                 </div>
               </div>
@@ -421,15 +717,40 @@ export default function DeployMonitorPage() {
     };
   }, [id]);
 
-  const handleStepAction = async (stepId, status, notes) => {
+  const handleStepAction = async (stepId, status, notes, elapsedStr) => {
     try {
       await api.patch(`/steps/${stepId}`, {
         status,
         notes: notes || undefined,
+        elapsed_str: elapsedStr || undefined,
       });
       toast.success(`Step ${status}`);
     } catch {
       toast.error("Gagal update step");
+    }
+  };
+
+  const handleAddAdjustment = async (stepId, note) => {
+    try {
+      await api.patch(`/steps/${stepId}`, {
+        notes: note,
+        is_adjustment: true,
+      });
+      toast.success("Catatan adjustment disimpan");
+    } catch {
+      toast.error("Gagal simpan catatan");
+    }
+  };
+
+  const handleEditStep = async (stepId, fields, editReason) => {
+    try {
+      await api.patch(`/steps/${stepId}`, {
+        ...fields,
+        edit_reason: editReason,
+      });
+      toast.success("Step berhasil diubah");
+    } catch {
+      toast.error("Gagal ubah step");
     }
   };
 
@@ -585,6 +906,8 @@ export default function DeployMonitorPage() {
                   key={s.id}
                   step={s}
                   onAction={handleStepAction}
+                  onAddAdjustment={handleAddAdjustment}
+                  onEditStep={handleEditStep}
                   disabled={crReadonly}
                 />
               ))
