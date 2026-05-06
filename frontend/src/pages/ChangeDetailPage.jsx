@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
 import SignatureCanvas from "../components/SignatureCanvas";
+import EvidenceUpload from "../components/EvidenceUpload";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import toast from "react-hot-toast";
@@ -465,6 +466,9 @@ export default function ChangeDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Evidence Gallery — read-only for all roles on this page */}
+        <EvidenceUpload crId={id} readOnly={true} />
       </div>
     </Layout>
   );
