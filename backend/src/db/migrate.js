@@ -120,6 +120,20 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) DEFAULT 'all';
 
 -- ─────────────────────────────────────────────
+-- DEPLOYMENT EVIDENCE (post-deployment screenshots)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS deployment_evidence (
+  id            SERIAL PRIMARY KEY,
+  cr_id         INTEGER REFERENCES change_requests(id) ON DELETE CASCADE,
+  filename      VARCHAR(300) NOT NULL,
+  file_type     VARCHAR(50)  NOT NULL,
+  file_size_kb  INTEGER      NOT NULL,
+  data          TEXT         NOT NULL,  -- base64 compressed image
+  uploaded_by   INTEGER REFERENCES users(id),
+  uploaded_at   TIMESTAMPTZ  DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────
 -- MIGRATION: Change squad
 -- ─────────────────────────────────────────────
 ALTER TABLE change_requests

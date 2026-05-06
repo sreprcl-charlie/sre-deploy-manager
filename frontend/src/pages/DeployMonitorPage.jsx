@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
+import EvidenceUpload from "../components/EvidenceUpload";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import toast from "react-hot-toast";
@@ -773,6 +774,8 @@ export default function DeployMonitorPage() {
       }
     });
 
+    // evidence:new is handled inside EvidenceUpload via its own state + API
+
     return () => {
       socket.emit("leave:cr", id);
       socket.disconnect();
@@ -925,6 +928,12 @@ export default function DeployMonitorPage() {
     cr.status === "completed" ||
     cr.status === "completed_with_notes" ||
     cr.status === "rolled_back";
+
+  const allStepsDone =
+    steps.length > 0 &&
+    steps.every((s) =>
+      ["completed", "failed", "skipped"].includes(s.status),
+    );
 
   return (
     <Layout>
@@ -1119,6 +1128,11 @@ export default function DeployMonitorPage() {
             </div>
           </div>
         </div>
+
+        {/* Evidence upload — visible when all steps done */}
+        {allStepsDone && (
+          <EvidenceUpload crId={id} readOnly={isApprover} />
+        )}
       </div>
     </Layout>
   );
