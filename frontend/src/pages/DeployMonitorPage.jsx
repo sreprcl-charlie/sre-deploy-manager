@@ -105,7 +105,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 }
 
 // ── Step Card ─────────────────────────────────────────────────────────────────
-function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
+function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disabled }) {
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(null); // { status, label }
 
@@ -118,6 +118,7 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [editReason, setEditReason] = useState("");
   const [editFields, setEditFields] = useState({
+    title: step.title || "",
     description: step.description || "",
     command: step.command || "",
     expected_result: step.expected_result || "",
@@ -126,6 +127,7 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const overdueLoggedRef = useRef(false);
   const timer = useStepTimer(step.duration_min);
 
   const isActive = step.status === "in_progress";
@@ -141,6 +143,7 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
   useEffect(() => {
     if (showEditPanel) {
       setEditFields({
+        title: step.title || "",
         description: step.description || "",
         command: step.command || "",
         expected_result: step.expected_result || "",
@@ -149,6 +152,14 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
       });
     }
   }, [showEditPanel]);
+
+  // Auto-log overdue event once when timer expires on an active step
+  useEffect(() => {
+    if (isOvertime && !overdueLoggedRef.current) {
+      overdueLoggedRef.current = true;
+      if (onOverdue) onOverdue(step.cr_id, step.step_number, step.title);
+    }
+  }, [isOvertime]);
 
   // Auto-stop timer when step finishes
   useEffect(() => {
@@ -190,6 +201,8 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
   const submitEdit = async () => {
     if (!editReason.trim()) return;
     const changed = {};
+    if (editFields.title !== (step.title || ""))
+      changed.title = editFields.title;
     if (editFields.description !== (step.description || ""))
       changed.description = editFields.description;
     if (editFields.command !== (step.command || ""))
@@ -306,6 +319,18 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, disabled }) {
                     (akan di-flag sebagai Edited)
                   </span>
                 </p>
+                <div>
+                  <label className="text-xs text-slate-500 mb-0.5 block">
+                    Nama Step
+                  </label>
+                  <input
+                    className="input text-sm w-full"
+                    value={editFields.title}
+                    onChange={(e) =>
+                      setEditFields((f) => ({ ...f, title: e.target.value }))
+                    }
+                  />
+                </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-0.5 block">
                     Deskripsi
@@ -719,11 +744,22 @@ export default function DeployMonitorPage() {
 
   const handleStepAction = async (stepId, status, notes, elapsedStr) => {
     try {
-      await api.patch(`/steps/${stepId}`, {
+      const res = await api.patch(`/steps/${stepId}`, {
         status,
         notes: notes || undefined,
         elapsed_str: elapsedStr || undefined,
       });
+      // Update local state immediately (socket update is secondary)
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              steps: d.steps.map((s) =>
+                s.id === stepId ? { ...s, ...res.data.step } : s,
+              ),
+            }
+          : d,
+      );
       toast.success(`Step ${status}`);
     } catch {
       toast.error("Gagal update step");
@@ -732,10 +768,20 @@ export default function DeployMonitorPage() {
 
   const handleAddAdjustment = async (stepId, note) => {
     try {
-      await api.patch(`/steps/${stepId}`, {
+      const res = await api.patch(`/steps/${stepId}`, {
         notes: note,
         is_adjustment: true,
       });
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              steps: d.steps.map((s) =>
+                s.id === stepId ? { ...s, ...res.data.step } : s,
+              ),
+            }
+          : d,
+      );
       toast.success("Catatan adjustment disimpan");
     } catch {
       toast.error("Gagal simpan catatan");
@@ -744,13 +790,36 @@ export default function DeployMonitorPage() {
 
   const handleEditStep = async (stepId, fields, editReason) => {
     try {
-      await api.patch(`/steps/${stepId}`, {
+      const res = await api.patch(`/steps/${stepId}`, {
         ...fields,
         edit_reason: editReason,
       });
+      // Update local state immediately so is_edited flag shows without waiting for socket
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              steps: d.steps.map((s) =>
+                s.id === stepId ? { ...s, ...res.data.step } : s,
+              ),
+            }
+          : d,
+      );
       toast.success("Step berhasil diubah");
     } catch {
       toast.error("Gagal ubah step");
+    }
+  };
+
+  const handleStepOverdue = async (crId, stepNumber, stepTitle) => {
+    try {
+      await api.post(`/steps/cr/${crId}/event`, {
+        message: `⚠️ Step ${stepNumber}: "${stepTitle}" melebihi waktu rundown (overdue)`,
+        event_type: "step_overdue",
+        severity: "warning",
+      });
+    } catch {
+      // Overdue log gagal tidak perlu toast, jangan ganggu user
     }
   };
 
@@ -809,7 +878,9 @@ export default function DeployMonitorPage() {
     );
 
   const { change: cr, checkpoints, steps, events } = data;
-  const completedSteps = steps.filter((s) => s.status === "completed").length;
+  const completedSteps = steps.filter((s) =>
+    ["completed", "failed", "skipped"].includes(s.status),
+  ).length;
   const progressPct = steps.length
     ? Math.round((completedSteps / steps.length) * 100)
     : 0;
@@ -908,6 +979,7 @@ export default function DeployMonitorPage() {
                   onAction={handleStepAction}
                   onAddAdjustment={handleAddAdjustment}
                   onEditStep={handleEditStep}
+                  onOverdue={handleStepOverdue}
                   disabled={crReadonly}
                 />
               ))

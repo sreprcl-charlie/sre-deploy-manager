@@ -83,6 +83,7 @@ router.patch("/:id", async (req, res) => {
     notes,
     elapsed_str,
     // Content edit fields
+    title,
     description,
     command,
     expected_result,
@@ -94,6 +95,7 @@ router.patch("/:id", async (req, res) => {
   } = req.body;
 
   const hasContentEdit = [
+    title,
     description,
     command,
     expected_result,
@@ -143,15 +145,16 @@ router.patch("/:id", async (req, res) => {
           started_at      = COALESCE($3,  started_at),
           completed_at    = COALESCE($4,  completed_at),
           executed_by     = COALESCE($5,  executed_by),
-          description     = COALESCE($6,  description),
-          command         = COALESCE($7,  command),
-          expected_result = COALESCE($8,  expected_result),
-          rollback_cmd    = COALESCE($9,  rollback_cmd),
-          duration_min    = COALESCE($10, duration_min),
-          is_edited       = $11,
-          edit_reason     = $12,
-          is_adjusted     = $13
-      WHERE id = $14
+          title           = COALESCE($6,  title),
+          description     = COALESCE($7,  description),
+          command         = COALESCE($8,  command),
+          expected_result = COALESCE($9,  expected_result),
+          rollback_cmd    = COALESCE($10, rollback_cmd),
+          duration_min    = COALESCE($11, duration_min),
+          is_edited       = $12,
+          edit_reason     = $13,
+          is_adjusted     = $14
+      WHERE id = $15
       RETURNING *
     `,
       [
@@ -160,6 +163,7 @@ router.patch("/:id", async (req, res) => {
         startedAt,
         completedAt,
         executedBy,
+        title !== undefined ? title : null,
         description !== undefined ? description : null,
         command !== undefined ? command : null,
         expected_result !== undefined ? expected_result : null,
@@ -212,6 +216,20 @@ router.patch("/:id", async (req, res) => {
          VALUES ($1, $2, $3, $4, $5)`,
         [step.cr_id, eventType, eventMsg, severity, req.user.id],
       );
+    }
+
+    // Recalculate CR-level progress based on steps
+    const { rows: allSteps } = await pool.query(
+      `SELECT status FROM deployment_steps WHERE cr_id = $1`,
+      [step.cr_id],
+    );
+    const total = allSteps.length;
+    const done = allSteps.filter((s) =>
+      ["completed", "failed", "skipped"].includes(s.status),
+    ).length;
+    const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
+    if (io) {
+      io.to(`cr-${step.cr_id}`).emit("progress:updated", { progressPct, done, total });
     }
 
     const io = req.app.get("io");
