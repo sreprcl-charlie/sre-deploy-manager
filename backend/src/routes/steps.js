@@ -218,6 +218,8 @@ router.patch("/:id", async (req, res) => {
       );
     }
 
+    const io = req.app.get("io");
+
     // Recalculate CR-level progress based on steps
     const { rows: allSteps } = await pool.query(
       `SELECT status FROM deployment_steps WHERE cr_id = $1`,
@@ -230,10 +232,6 @@ router.patch("/:id", async (req, res) => {
     const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
     if (io) {
       io.to(`cr-${step.cr_id}`).emit("progress:updated", { progressPct, done, total });
-    }
-
-    const io = req.app.get("io");
-    if (io) {
       io.to(`cr-${step.cr_id}`).emit("step:updated", step);
     }
 
