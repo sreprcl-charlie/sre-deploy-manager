@@ -31,7 +31,8 @@ const SEVERITY_COLORS = {
 };
 
 // ── Countdown timer hook ─────────────────────────────────────────────────────
-// startedAt: ISO string dari DB (atau null). Kalau ada, hitung remaining dari sana.
+// startedAt: ISO string dari DB (atau null). Kalau ada dan timer belum manual-start,
+// hitung remaining dari sana (resume on refresh).
 function useStepTimer(durationMin, startedAt) {
   const totalSec = (durationMin || 0) * 60;
 
@@ -44,10 +45,12 @@ function useStepTimer(durationMin, startedAt) {
   const [remaining, setRemaining] = useState(calcRemaining);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef(null);
+  // True kalau user sudah manual-start di sesi ini — cegah overwrite dari DB update
+  const manuallyStartedRef = useRef(false);
 
-  // Auto-resume timer jika step sudah in_progress saat mount/refresh
+  // Auto-resume dari DB hanya saat mount/refresh (belum manual-start)
   useEffect(() => {
-    if (startedAt) {
+    if (startedAt && !manuallyStartedRef.current) {
       const r = calcRemaining();
       setRemaining(r);
       if (r > 0) {
@@ -59,6 +62,7 @@ function useStepTimer(durationMin, startedAt) {
 
   const start = useCallback(() => {
     if (running) return;
+    manuallyStartedRef.current = true;
     setRunning(true);
   }, [running]);
 
@@ -67,6 +71,7 @@ function useStepTimer(durationMin, startedAt) {
   }, []);
 
   const reset = useCallback(() => {
+    manuallyStartedRef.current = false;
     setRunning(false);
     setRemaining(totalSec);
   }, [totalSec]);
