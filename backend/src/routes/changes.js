@@ -118,6 +118,7 @@ router.post("/", async (req, res) => {
     title,
     description,
     change_type,
+    change_squad,
     priority,
     environment,
     affected_systems,
@@ -137,10 +138,10 @@ router.post("/", async (req, res) => {
     const { rows } = await client.query(
       `
       INSERT INTO change_requests
-        (cr_number, title, description, change_type, priority, environment,
+        (cr_number, title, description, change_type, change_squad, priority, environment,
          affected_systems, scheduled_start, scheduled_end,
          rollback_plan, cab_approved_by, cab_approved_at, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *
     `,
       [
@@ -148,6 +149,7 @@ router.post("/", async (req, res) => {
         title,
         description,
         change_type,
+        change_squad || "non_core",
         priority,
         environment,
         affected_systems,
@@ -228,6 +230,7 @@ router.patch("/:id", async (req, res) => {
     "status",
     "title",
     "description",
+    "change_squad",
     "rollback_plan",
     "scheduled_start",
     "scheduled_end",

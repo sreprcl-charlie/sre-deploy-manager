@@ -45,6 +45,7 @@ export default function NewChangePage() {
     title: "",
     description: "",
     change_type: "normal",
+    change_squad: "non_core",
     priority: "medium",
     environment: "prod",
     affected_systems: "",
@@ -151,6 +152,17 @@ export default function NewChangePage() {
                       {t.charAt(0).toUpperCase() + t.slice(1)}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Change Squad *</label>
+                <select
+                  className="input"
+                  value={form.change_squad}
+                  onChange={(e) => setField("change_squad", e.target.value)}
+                >
+                  <option value="core">Core</option>
+                  <option value="non_core">Non Core</option>
                 </select>
               </div>
               <div className="col-span-2">

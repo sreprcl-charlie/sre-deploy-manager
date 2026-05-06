@@ -120,6 +120,12 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) DEFAULT 'all';
 
 -- ─────────────────────────────────────────────
+-- MIGRATION: Change squad
+-- ─────────────────────────────────────────────
+ALTER TABLE change_requests
+  ADD COLUMN IF NOT EXISTS change_squad VARCHAR(20) DEFAULT 'non_core';
+
+-- ─────────────────────────────────────────────
 -- MIGRATION: Digital signature / approval
 -- ─────────────────────────────────────────────
 ALTER TABLE change_requests

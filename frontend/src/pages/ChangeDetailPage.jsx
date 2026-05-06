@@ -311,6 +311,7 @@ export default function ChangeDetailPage() {
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 {[
                   ["Type", cr.change_type],
+                  ["Squad", cr.change_squad === "core" ? "Core" : cr.change_squad === "non_core" ? "Non Core" : cr.change_squad || "—"],
                   ["Priority", cr.priority],
                   ["CAB Approved By", cr.cab_approved_by || "—"],
                   [
