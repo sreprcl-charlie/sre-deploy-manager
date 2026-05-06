@@ -16,9 +16,9 @@ router.get("/", async (req, res) => {
     if (role === "admin") {
       // admin sees everything
     } else if (role === "approver") {
-      whereClause = "WHERE cr.change_type = 'core'";
+      whereClause = "WHERE cr.change_squad = 'core'";
     } else if (product_type && product_type !== "all") {
-      whereClause = "WHERE cr.change_type = $1";
+      whereClause = "WHERE cr.change_squad = $1";
       values.push(product_type);
     }
 
@@ -57,9 +57,9 @@ router.get("/:id", async (req, res) => {
 
     // Visibility check
     if (role !== "admin") {
-      if (role === "approver" && cr.change_type !== "core")
+      if (role === "approver" && cr.change_squad !== "core")
         return res.status(403).json({ error: "Access denied" });
-      if (role !== "approver" && product_type !== "all" && cr.change_type !== product_type)
+      if (role !== "approver" && product_type !== "all" && cr.change_squad !== product_type)
         return res.status(403).json({ error: "Access denied" });
     }
 
@@ -213,15 +213,15 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const { id } = req.params;
 
-  // Block in_progress if core type and not yet signed
+  // Block in_progress if core squad and not yet signed
   if (req.body.status === "in_progress") {
     const { rows } = await pool.query(
-      "SELECT change_type, signature_data FROM change_requests WHERE id = $1",
+      "SELECT change_squad, signature_data FROM change_requests WHERE id = $1",
       [id],
     );
-    if (rows.length && rows[0].change_type === "core" && !rows[0].signature_data) {
+    if (rows.length && rows[0].change_squad === "core" && !rows[0].signature_data) {
       return res.status(403).json({
-        error: "CR tipe Core harus mendapat TTD digital Approver terlebih dahulu",
+        error: "CR Squad Core harus mendapat TTD digital Approver terlebih dahulu",
       });
     }
   }

@@ -99,7 +99,7 @@ export default function ChangeDetailPage() {
 
   const { change: cr, checkpoints, steps } = data;
 
-  const isCore = cr.change_type === "core";
+  const isCore = cr.change_squad === "core";
   const isSigned = !!cr.signature_data;
   const needsApproval = isCore && !isSigned;
   const isApprover = user?.role === "approver";
