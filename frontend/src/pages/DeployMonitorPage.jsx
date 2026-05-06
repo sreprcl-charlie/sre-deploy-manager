@@ -31,11 +31,31 @@ const SEVERITY_COLORS = {
 };
 
 // ── Countdown timer hook ─────────────────────────────────────────────────────
-function useStepTimer(durationMin) {
+// startedAt: ISO string dari DB (atau null). Kalau ada, hitung remaining dari sana.
+function useStepTimer(durationMin, startedAt) {
   const totalSec = (durationMin || 0) * 60;
-  const [remaining, setRemaining] = useState(totalSec);
+
+  const calcRemaining = () => {
+    if (!startedAt) return totalSec;
+    const elapsed = Math.floor((Date.now() - new Date(startedAt)) / 1000);
+    return Math.max(totalSec - elapsed, 0);
+  };
+
+  const [remaining, setRemaining] = useState(calcRemaining);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef(null);
+
+  // Auto-resume timer jika step sudah in_progress saat mount/refresh
+  useEffect(() => {
+    if (startedAt) {
+      const r = calcRemaining();
+      setRemaining(r);
+      if (r > 0) {
+        setRunning(true);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startedAt]);
 
   const start = useCallback(() => {
     if (running) return;
@@ -128,7 +148,10 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disa
   const [savingEdit, setSavingEdit] = useState(false);
 
   const overdueLoggedRef = useRef(false);
-  const timer = useStepTimer(step.duration_min);
+  const timer = useStepTimer(
+    step.duration_min,
+    isActive ? step.started_at : null,
+  );
 
   const isActive = step.status === "in_progress";
   const isDone = step.status === "completed";
