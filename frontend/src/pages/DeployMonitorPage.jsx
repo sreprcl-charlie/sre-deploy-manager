@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
+import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import toast from "react-hot-toast";
 import {
@@ -703,6 +704,8 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disa
 
 export default function DeployMonitorPage() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const isApprover = user?.role === "approver";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [eventMsg, setEventMsg] = useState("");
@@ -1014,7 +1017,7 @@ export default function DeployMonitorPage() {
                   onAddAdjustment={handleAddAdjustment}
                   onEditStep={handleEditStep}
                   onOverdue={handleStepOverdue}
-                  disabled={crReadonly}
+                  disabled={crReadonly || isApprover}
                 />
               ))
             )}
@@ -1094,8 +1097,8 @@ export default function DeployMonitorPage() {
                   ))
                 )}
               </div>
-              {/* Comment input */}
-              <div className="flex gap-2 mt-3 shrink-0">
+              {/* Comment input — hidden for approver */}
+              {!isApprover && <div className="flex gap-2 mt-3 shrink-0">
                 <input
                   className="input text-sm flex-1"
                   placeholder="Tulis log / komentar..."
@@ -1112,7 +1115,7 @@ export default function DeployMonitorPage() {
                 >
                   <Send size={14} />
                 </button>
-              </div>
+              </div>}
             </div>
           </div>
         </div>

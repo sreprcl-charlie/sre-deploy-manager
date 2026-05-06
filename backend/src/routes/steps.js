@@ -76,6 +76,8 @@ router.post("/", async (req, res) => {
 
 // PATCH /api/steps/:id  — update step status, add adjustment note, or edit content
 router.patch("/:id", async (req, res) => {
+  if (req.user.role === "approver")
+    return res.status(403).json({ error: "Approver tidak dapat mengubah step" });
   const { id } = req.params;
   const {
     // Status update
@@ -244,6 +246,8 @@ router.patch("/:id", async (req, res) => {
 
 // POST /api/steps/cr/:cr_id/event  — add manual event/comment to deployment log
 router.post("/cr/:cr_id/event", async (req, res) => {
+  if (req.user.role === "approver")
+    return res.status(403).json({ error: "Approver tidak dapat menambah event" });
   const { cr_id } = req.params;
   const { event_type = "comment", message, severity = "info" } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });

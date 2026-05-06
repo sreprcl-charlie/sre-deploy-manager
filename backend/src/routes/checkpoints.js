@@ -50,6 +50,8 @@ router.post("/", async (req, res) => {
 
 // PATCH /api/checkpoints/:id  — update status, notes
 router.patch("/:id", async (req, res) => {
+  if (req.user.role === "approver")
+    return res.status(403).json({ error: "Approver tidak dapat mengubah checkpoint" });
   const { id } = req.params;
   const { status, notes } = req.body;
 

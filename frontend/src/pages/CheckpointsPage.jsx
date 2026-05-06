@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
+import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import toast from "react-hot-toast";
 import { CheckCircle, XCircle, MessageSquare } from "lucide-react";
 
 export default function CheckpointsPage() {
+  const { user } = useAuth();
+  const isApprover = user?.role === "approver";
   const [changes, setChanges] = useState([]);
   const [selectedCr, setSelectedCr] = useState("");
   const [checkpoints, setCheckpoints] = useState([]);
@@ -177,7 +180,7 @@ export default function CheckpointsPage() {
                   </div>
                 </div>
 
-                {cp.status !== "passed" && cp.status !== "failed" && (
+                {cp.status !== "passed" && cp.status !== "failed" && !isApprover && (
                   <div className="mt-3 space-y-2">
                     <textarea
                       className="input text-sm resize-none"
@@ -207,7 +210,7 @@ export default function CheckpointsPage() {
                   </div>
                 )}
 
-                {(cp.status === "passed" || cp.status === "failed") && (
+                {(cp.status === "passed" || cp.status === "failed") && !isApprover && (
                   <button
                     onClick={() => updateCheckpoint(cp.id, "pending")}
                     className="mt-3 text-xs text-slate-500 hover:text-slate-400 transition-colors"
