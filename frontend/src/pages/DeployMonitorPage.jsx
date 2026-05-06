@@ -722,12 +722,12 @@ export default function DeployMonitorPage() {
 
     // Socket.io
     const token = localStorage.getItem("token");
-    // Di production (Railway): VITE_WS_URL kosong → Socket.io auto-connect ke origin yang sama
-    // Di development: fallback ke localhost:4000
-    const wsUrl = import.meta.env.VITE_WS_URL || "http://localhost:4000";
-    const socket = io(wsUrl || undefined, {
-      auth: { token },
-    });
+    // Di production (Railway): VITE_WS_URL="" → auto-connect ke origin yang sama (no URL arg)
+    // Di development: VITE_WS_URL="http://localhost:4000"
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    const socket = wsUrl
+      ? io(wsUrl, { auth: { token } })
+      : io({ auth: { token } });
     socketRef.current = socket;
 
     socket.emit("join:cr", id);
