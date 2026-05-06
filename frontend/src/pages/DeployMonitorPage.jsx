@@ -148,16 +148,17 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disa
   const [savingEdit, setSavingEdit] = useState(false);
 
   const overdueLoggedRef = useRef(false);
-  const timer = useStepTimer(
-    step.duration_min,
-    isActive ? step.started_at : null,
-  );
 
   const isActive = step.status === "in_progress";
   const isDone = step.status === "completed";
   const isFailed = step.status === "failed";
   const isSkipped = step.status === "skipped";
   const isFinished = isDone || isFailed || isSkipped;
+
+  const timer = useStepTimer(
+    step.duration_min,
+    isActive ? step.started_at : null,
+  );
 
   // Overtime: countdown hit zero while step is still active
   const isOvertime = timer.remaining === 0 && timer.pct === 100 && isActive;
@@ -706,9 +707,14 @@ export default function DeployMonitorPage() {
   const socketRef = useRef(null);
 
   const load = async () => {
-    const res = await api.get(`/changes/${id}`);
-    setData(res.data);
-    setLoading(false);
+    try {
+      const res = await api.get(`/changes/${id}`);
+      setData(res.data);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
