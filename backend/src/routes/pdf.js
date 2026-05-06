@@ -317,6 +317,31 @@ router.get("/:cr_id", async (req, res) => {
       );
     doc.moveDown(4.5);
 
+    // ── DIGITAL SIGNATURE ─────────────────────────────────────────────
+    if (cr.signature_data) {
+      sectionTitle("TANDA TANGAN DIGITAL APPROVER");
+      try {
+        // signature_data is "data:image/png;base64,<data>"
+        const base64 = cr.signature_data.replace(/^data:image\/\w+;base64,/, "");
+        const imgBuf = Buffer.from(base64, "base64");
+        const sigX = doc.page.margins.left;
+        const sigY = doc.y + 4;
+        doc.image(imgBuf, sigX, sigY, { width: 200, height: 80 });
+        doc.moveDown(6);
+        doc
+          .font("Helvetica-Bold").fontSize(9).fillColor("#0f172a")
+          .text(`Disetujui oleh: ${cr.signature_name || "-"}`, doc.page.margins.left);
+        doc
+          .font("Helvetica").fontSize(9).fillColor("#475569")
+          .text(`Waktu approval: ${formatDate(cr.signature_at)}`);
+        doc.moveDown(0.5);
+      } catch (sigErr) {
+        doc.font("Helvetica").fontSize(9).fillColor("#ef4444")
+          .text("[Tanda tangan tidak dapat ditampilkan]");
+        doc.moveDown(0.5);
+      }
+    }
+
     // ── FOOTER ────────────────────────────────────────────────────────
     doc
       .fontSize(8)

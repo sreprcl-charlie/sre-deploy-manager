@@ -146,9 +146,9 @@ export default function NewChangePage() {
                   value={form.change_type}
                   onChange={(e) => setField("change_type", e.target.value)}
                 >
-                  {["normal", "emergency", "standard"].map((t) => (
+                  {["normal", "emergency", "standard", "core", "digital"].map((t) => (
                     <option key={t} value={t}>
-                      {t}
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
                     </option>
                   ))}
                 </select>

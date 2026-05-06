@@ -59,6 +59,7 @@ router.post("/login", async (req, res) => {
         role: user.role,
         team: user.team,
         full_name: user.full_name,
+        product_type: user.product_type || "all",
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },
@@ -73,6 +74,7 @@ router.post("/login", async (req, res) => {
         role: user.role,
         team: user.team,
         email: user.email,
+        product_type: user.product_type || "all",
       },
     });
   } catch (err) {
@@ -87,7 +89,7 @@ router.get(
   require("../middleware/auth").authMiddleware,
   async (req, res) => {
     const { rows } = await pool.query(
-      "SELECT id, username, full_name, email, role, team, created_at FROM users WHERE id = $1",
+      "SELECT id, username, full_name, email, role, team, product_type, created_at FROM users WHERE id = $1",
       [req.user.id],
     );
     res.json({ user: rows[0] });
@@ -100,7 +102,7 @@ router.get(
   require("../middleware/auth").authMiddleware,
   async (req, res) => {
     const { rows } = await pool.query(
-      "SELECT id, username, full_name, email, role, team FROM users ORDER BY full_name",
+      "SELECT id, username, full_name, email, role, team, product_type FROM users ORDER BY full_name",
     );
     res.json({ users: rows });
   },

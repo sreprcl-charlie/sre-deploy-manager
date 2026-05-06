@@ -1,4 +1,5 @@
 const pool = require("./pool");
+const bcrypt = require("bcryptjs");
 
 const SQL = `
 -- ─────────────────────────────────────────────
@@ -111,6 +112,21 @@ ALTER TABLE deployment_steps
   ADD COLUMN IF NOT EXISTS is_adjusted BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS is_edited   BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS edit_reason TEXT;
+
+-- ─────────────────────────────────────────────
+-- MIGRATION: Roles & product type
+-- ─────────────────────────────────────────────
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) DEFAULT 'all';
+
+-- ─────────────────────────────────────────────
+-- MIGRATION: Digital signature / approval
+-- ─────────────────────────────────────────────
+ALTER TABLE change_requests
+  ADD COLUMN IF NOT EXISTS signature_data     TEXT,
+  ADD COLUMN IF NOT EXISTS signature_user_id  INTEGER REFERENCES users(id),
+  ADD COLUMN IF NOT EXISTS signature_at       TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS signature_name     VARCHAR(200);
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -142,6 +158,10 @@ async function migrate() {
       await client.query(SQL);
       console.log("[migrate] ✓ All tables created / verified.");
       client.release();
+
+      // Seed approver user jika belum ada
+      await seedApprover();
+
       await pool.end();
       return;
     } catch (err) {
@@ -160,6 +180,25 @@ async function migrate() {
       }
     }
   }
+}
+
+async function seedApprover() {
+  const username = "slamet.widodo";
+  const { rows } = await pool.query(
+    "SELECT id FROM users WHERE username = $1",
+    [username],
+  );
+  if (rows.length) {
+    console.log("[migrate] Approver user already exists, skipping seed.");
+    return;
+  }
+  const hash = await bcrypt.hash("slamet123", 12);
+  await pool.query(
+    `INSERT INTO users (username, full_name, email, password, role, team, product_type)
+     VALUES ($1,$2,$3,$4,'approver','Core Team','core')`,
+    [username, "Slamet Widodo", "slamet.widodo@company.com", hash],
+  );
+  console.log("[migrate] ✓ Approver user slamet.widodo created.");
 }
 
 migrate();

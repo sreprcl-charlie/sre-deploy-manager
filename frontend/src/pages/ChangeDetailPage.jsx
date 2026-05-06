@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
+import SignatureCanvas from "../components/SignatureCanvas";
+import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 import toast from "react-hot-toast";
 import {
@@ -14,14 +16,19 @@ import {
   AlertTriangle,
   CheckCircle,
   AlertCircle,
+  PenTool,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function ChangeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
+  const [savingSignature, setSavingSignature] = useState(false);
 
   const load = () => {
     api
@@ -38,8 +45,22 @@ export default function ChangeDetailPage() {
       await api.patch(`/changes/${id}`, { status });
       toast.success(`Status diubah ke ${status}`);
       load();
-    } catch {
-      toast.error("Gagal update status");
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Gagal update status");
+    }
+  };
+
+  const handleApprove = async (signatureData) => {
+    setSavingSignature(true);
+    try {
+      await api.post(`/changes/${id}/approve`, { signature_data: signatureData });
+      toast.success("TTD digital berhasil disimpan!");
+      setShowSignature(false);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Gagal menyimpan TTD");
+    } finally {
+      setSavingSignature(false);
     }
   };
 
@@ -78,6 +99,12 @@ export default function ChangeDetailPage() {
 
   const { change: cr, checkpoints, steps } = data;
 
+  const isCore = cr.change_type === "core";
+  const isSigned = !!cr.signature_data;
+  const needsApproval = isCore && !isSigned;
+  const isApprover = user?.role === "approver";
+  const isAdmin = user?.role === "admin";
+
   // Semua steps harus completed atau skipped sebelum bisa update status akhir
   const allStepsDone =
     steps.length > 0 &&
@@ -93,6 +120,12 @@ export default function ChangeDetailPage() {
 
   return (
     <Layout>
+      {showSignature && (
+        <SignatureCanvas
+          onConfirm={handleApprove}
+          onCancel={() => setShowSignature(false)}
+        />
+      )}
       <div className="p-6 space-y-5 max-w-5xl mx-auto">
         {/* Breadcrumb + actions */}
         <div className="flex items-start justify-between gap-4">
@@ -112,13 +145,44 @@ export default function ChangeDetailPage() {
               <span className="text-xs text-slate-500 uppercase">
                 {cr.environment}
               </span>
+              <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400 uppercase font-medium">
+                {cr.change_type}
+              </span>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            {cr.status === "approved" && (
+          <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+            {/* Approver TTD button */}
+            {isApprover && isCore && cr.status === "approved" && (
               <button
-                onClick={() => updateStatus("in_progress")}
-                className="btn-success flex items-center gap-2"
+                onClick={() => setShowSignature(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isSigned
+                    ? "bg-emerald-800/40 text-emerald-300 border border-emerald-700/50"
+                    : "bg-sky-600 hover:bg-sky-500 text-white"
+                }`}
+              >
+                {isSigned ? (
+                  <><ShieldCheck size={14} /> TTD Tersimpan</>
+                ) : (
+                  <><PenTool size={14} /> Bubuhkan TTD Digital</>
+                )}
+              </button>
+            )}
+
+            {/* Mulai Deploy — blocked for unsigned core CRs */}
+            {cr.status === "approved" && !isApprover && (
+              <button
+                onClick={() => {
+                  if (needsApproval) {
+                    toast.error("CR tipe Core harus ditandatangani Approver terlebih dahulu");
+                    return;
+                  }
+                  updateStatus("in_progress");
+                }}
+                className={`btn-success flex items-center gap-2 ${
+                  needsApproval ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={needsApproval ? "Tunggu TTD digital dari Approver" : ""}
               >
                 <Play size={14} /> Mulai Deploy
               </button>
@@ -194,6 +258,47 @@ export default function ChangeDetailPage() {
             </Link>
           </div>
         </div>
+
+        {/* Approval status banner */}
+        {isCore && (
+          <div
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
+              isSigned
+                ? "bg-emerald-950/30 border-emerald-700/40 text-emerald-300"
+                : "bg-amber-950/30 border-amber-700/40 text-amber-300"
+            }`}
+          >
+            {isSigned ? (
+              <ShieldCheck size={16} className="shrink-0" />
+            ) : (
+              <PenTool size={16} className="shrink-0" />
+            )}
+            <div className="text-sm">
+              {isSigned ? (
+                <>
+                  <span className="font-semibold">Disetujui oleh {cr.signature_name}</span>
+                  {cr.signature_at && (
+                    <span className="text-xs text-emerald-400/70 ml-2">
+                      {new Date(cr.signature_at).toLocaleString("id-ID")}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="font-semibold">
+                  CR tipe Core — menunggu TTD digital dari Approver sebelum dapat di-deploy
+                </span>
+              )}
+            </div>
+            {/* Signature preview */}
+            {isSigned && cr.signature_data && (
+              <img
+                src={cr.signature_data}
+                alt="TTD"
+                className="ml-auto h-10 rounded border border-emerald-700/30 bg-white"
+              />
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-5">
           {/* Left: CR details */}

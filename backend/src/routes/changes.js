@@ -5,15 +5,31 @@ const { authMiddleware } = require("../middleware/auth");
 const router = express.Router();
 router.use(authMiddleware);
 
-// GET /api/changes  — list all change requests
+// GET /api/changes  — list all change requests (filtered by role/product_type)
 router.get("/", async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT cr.*, u.full_name AS created_by_name
-      FROM change_requests cr
-      LEFT JOIN users u ON u.id = cr.created_by
-      ORDER BY cr.scheduled_start DESC
-    `);
+    const { role, product_type } = req.user;
+
+    let whereClause = "";
+    const values = [];
+
+    if (role === "admin") {
+      // admin sees everything
+    } else if (role === "approver") {
+      whereClause = "WHERE cr.change_type = 'core'";
+    } else if (product_type && product_type !== "all") {
+      whereClause = "WHERE cr.change_type = $1";
+      values.push(product_type);
+    }
+
+    const { rows } = await pool.query(
+      `SELECT cr.*, u.full_name AS created_by_name
+       FROM change_requests cr
+       LEFT JOIN users u ON u.id = cr.created_by
+       ${whereClause}
+       ORDER BY cr.scheduled_start DESC`,
+      values,
+    );
     res.json({ changes: rows });
   } catch (err) {
     console.error(err);
@@ -21,20 +37,31 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/changes/:id  — single CR with checkpoints + steps
+// GET /api/changes/:id
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+  const { role, product_type } = req.user;
   try {
     const { rows: crRows } = await pool.query(
-      `
-      SELECT cr.*, u.full_name AS created_by_name
-      FROM change_requests cr
-      LEFT JOIN users u ON u.id = cr.created_by
-      WHERE cr.id = $1
-    `,
+      `SELECT cr.*, u.full_name AS created_by_name,
+              su.full_name AS signature_user_name
+       FROM change_requests cr
+       LEFT JOIN users u ON u.id = cr.created_by
+       LEFT JOIN users su ON su.id = cr.signature_user_id
+       WHERE cr.id = $1`,
       [id],
     );
     if (!crRows.length) return res.status(404).json({ error: "Not found" });
+
+    const cr = crRows[0];
+
+    // Visibility check
+    if (role !== "admin") {
+      if (role === "approver" && cr.change_type !== "core")
+        return res.status(403).json({ error: "Access denied" });
+      if (role !== "approver" && product_type !== "all" && cr.change_type !== product_type)
+        return res.status(403).json({ error: "Access denied" });
+    }
 
     const [checkpoints, steps, events] = await Promise.all([
       pool.query(
@@ -183,6 +210,20 @@ router.post("/", async (req, res) => {
 // PATCH /api/changes/:id  — update status or fields
 router.patch("/:id", async (req, res) => {
   const { id } = req.params;
+
+  // Block in_progress if core type and not yet signed
+  if (req.body.status === "in_progress") {
+    const { rows } = await pool.query(
+      "SELECT change_type, signature_data FROM change_requests WHERE id = $1",
+      [id],
+    );
+    if (rows.length && rows[0].change_type === "core" && !rows[0].signature_data) {
+      return res.status(403).json({
+        error: "CR tipe Core harus mendapat TTD digital Approver terlebih dahulu",
+      });
+    }
+  }
+
   const allowed = [
     "status",
     "title",
@@ -209,6 +250,34 @@ router.patch("/:id", async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE change_requests SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
+    );
+    if (!rows.length) return res.status(404).json({ error: "Not found" });
+    res.json({ change: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/changes/:id/approve  — approver saves digital signature
+router.post("/:id/approve", async (req, res) => {
+  if (req.user.role !== "approver" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Hanya Approver yang dapat menandatangani" });
+  }
+  const { id } = req.params;
+  const { signature_data } = req.body;
+  if (!signature_data) return res.status(400).json({ error: "signature_data required" });
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE change_requests
+       SET signature_data    = $1,
+           signature_user_id = $2,
+           signature_at      = NOW(),
+           signature_name    = $3
+       WHERE id = $4
+       RETURNING *`,
+      [signature_data, req.user.id, req.user.full_name, id],
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     res.json({ change: rows[0] });
