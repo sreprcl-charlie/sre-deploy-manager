@@ -1,0 +1,181 @@
+# =============================================================================
+# SRE Deploy Manager — GitLab CI pipeline
+# =============================================================================
+# Stages:
+#   lint     -> backend (node syntax), frontend (eslint)
+#   build    -> frontend Vite bundle
+#   publish  -> push backend + frontend images to GitLab Container Registry
+#
+# Image tagging:
+#   - every push to main         :sha-<short>, :latest
+#   - tag v*                     :sha-<short>, :vX.Y.Z, :latest    (both)
+#   - tag backend-v*             :sha-<short>, :vX.Y.Z, :latest    (backend only)
+#   - tag frontend-v*            :sha-<short>, :vX.Y.Z, :latest    (frontend only)
+#
+# Container registry uses auto-injected $CI_REGISTRY_* variables.
+# =============================================================================
+
+stages:
+  - lint
+  - build
+  - publish
+
+variables:
+  NODE_VERSION: "20"
+  KANIKO_VERSION: "v1.23.2-debug"
+
+default:
+  interruptible: true
+  tags:
+    - saas-linux-small-amd64
+
+# -----------------------------------------------------------------------------
+# Rule fragments
+# -----------------------------------------------------------------------------
+.rules:on-backend-publish-event:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+/
+    - if: $CI_COMMIT_TAG =~ /^backend-v[0-9]+\.[0-9]+\.[0-9]+/
+
+.rules:on-frontend-publish-event:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+/
+    - if: $CI_COMMIT_TAG =~ /^frontend-v[0-9]+\.[0-9]+\.[0-9]+/
+
+# =============================================================================
+# Lint
+# =============================================================================
+
+lint:backend:
+  stage: lint
+  image: node:${NODE_VERSION}-alpine
+  before_script:
+    - cd backend
+    - npm ci --prefer-offline --no-audit
+  script:
+    # Syntax-check all JS files under src/
+    - find src -name "*.js" | xargs node --check
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+    policy: pull-push
+
+lint:frontend:
+  stage: lint
+  image: node:${NODE_VERSION}-alpine
+  allow_failure: true
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline --no-audit
+  script:
+    - npm run lint
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - frontend/node_modules/
+    policy: pull-push
+
+# =============================================================================
+# Build
+# =============================================================================
+
+# Pre-build the Vite bundle. Frontend Dockerfile expects dist/ to exist.
+build:frontend:bundle:
+  stage: build
+  image: node:${NODE_VERSION}-alpine
+  variables:
+    NODE_OPTIONS: "--max-old-space-size=4096"
+    # In production the nginx container proxies /api → backend container,
+    # so relative /api is the correct base URL.
+    VITE_API_URL: "/api"
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline --no-audit
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 day
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - frontend/node_modules/
+    policy: pull
+  extends: .rules:on-frontend-publish-event
+
+# =============================================================================
+# Publish — push images to $CI_REGISTRY_IMAGE/{backend,frontend}
+# =============================================================================
+# Uses kaniko (no docker-in-docker, no privileged runner required).
+
+.kaniko:
+  image:
+    name: gcr.io/kaniko-project/executor:${KANIKO_VERSION}
+    entrypoint: [""]
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - |
+      cat > /kaniko/.docker/config.json <<EOF
+      {"auths":{"$CI_REGISTRY":{"username":"$CI_REGISTRY_USER","password":"$CI_REGISTRY_PASSWORD"}}}
+      EOF
+
+publish:backend:
+  extends:
+    - .kaniko
+    - .rules:on-backend-publish-event
+  stage: publish
+  script:
+    - DEST_FLAGS="--destination=$CI_REGISTRY_IMAGE/backend:sha-$CI_COMMIT_SHORT_SHA"
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        VERSION=${CI_COMMIT_TAG#backend-v}
+        VERSION=${VERSION#v}
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/backend:v$VERSION"
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/backend:latest"
+      elif [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/backend:latest"
+      fi
+    - echo "Tags -> $DEST_FLAGS"
+    - /kaniko/executor
+      --context $CI_PROJECT_DIR/backend
+      --dockerfile $CI_PROJECT_DIR/backend/Dockerfile
+      $DEST_FLAGS
+      --cache=true
+      --cache-ttl=168h
+
+publish:frontend:
+  extends:
+    - .kaniko
+    - .rules:on-frontend-publish-event
+  stage: publish
+  needs:
+    - job: build:frontend:bundle
+      artifacts: true
+  script:
+    - DEST_FLAGS="--destination=$CI_REGISTRY_IMAGE/frontend:sha-$CI_COMMIT_SHORT_SHA"
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        VERSION=${CI_COMMIT_TAG#frontend-v}
+        VERSION=${VERSION#v}
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/frontend:v$VERSION"
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/frontend:latest"
+      elif [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        DEST_FLAGS="$DEST_FLAGS --destination=$CI_REGISTRY_IMAGE/frontend:latest"
+      fi
+    - echo "Tags -> $DEST_FLAGS"
+    - /kaniko/executor
+      --context $CI_PROJECT_DIR/frontend
+      --dockerfile $CI_PROJECT_DIR/frontend/Dockerfile
+      $DEST_FLAGS
+      --cache=true
+      --cache-ttl=168h
