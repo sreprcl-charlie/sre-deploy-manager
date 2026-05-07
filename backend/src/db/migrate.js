@@ -159,6 +159,22 @@ DO $$ BEGIN
     ALTER TABLE change_requests RENAME COLUMN cr_number TO cmf_number;
   END IF;
 END $$;
+
+-- ─────────────────────────────────────────────
+-- INVITE TOKENS (admin-generated public signup links)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS invite_tokens (
+  id             SERIAL PRIMARY KEY,
+  token          VARCHAR(64) UNIQUE NOT NULL,
+  allowed_squads TEXT[]      NOT NULL DEFAULT '{core,digital}',  -- core | digital | both
+  label          VARCHAR(200),                                    -- optional note by admin
+  created_by     INTEGER REFERENCES users(id),
+  expires_at     TIMESTAMPTZ NOT NULL,
+  used_by        INTEGER REFERENCES users(id),
+  used_at        TIMESTAMPTZ,
+  is_revoked     BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

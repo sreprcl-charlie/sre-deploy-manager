@@ -8,6 +8,7 @@ import {
   LogOut,
   User,
   Shield,
+  Link2,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +16,10 @@ const navItems = [
   { to: "/changes", label: "Change Mgmt", icon: FileText },
   { to: "/checkpoints", label: "Checkpoints", icon: CheckSquare },
   { to: "/deploy", label: "Deploy Monitor", icon: Activity },
+];
+
+const adminNavItems = [
+  { to: "/admin/invite", label: "Invite Links", icon: Link2 },
 ];
 
 export default function Layout({ children }) {
@@ -60,7 +65,7 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-0.5">
-          {navItems.map(({ to, label, icon: Icon }) => {
+          {[...navItems, ...(user?.role === "admin" ? adminNavItems : [])].map(({ to, label, icon: Icon }) => {
             const active =
               location.pathname === to ||
               (to !== "/" && location.pathname.startsWith(to));

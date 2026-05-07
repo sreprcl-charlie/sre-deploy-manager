@@ -3,12 +3,14 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage        from './pages/LoginPage';
+import SignupPage       from './pages/SignupPage';
 import DashboardPage    from './pages/DashboardPage';
 import ChangesPage      from './pages/ChangesPage';
 import NewChangePage    from './pages/NewChangePage';
 import ChangeDetailPage from './pages/ChangeDetailPage';
 import CheckpointsPage  from './pages/CheckpointsPage';
 import DeployMonitorPage from './pages/DeployMonitorPage';
+import InvitePage       from './pages/InvitePage';
 
 export default function App() {
   return (
@@ -22,6 +24,7 @@ export default function App() {
         />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/changes" element={<ProtectedRoute><ChangesPage /></ProtectedRoute>} />
           <Route path="/changes/new" element={<ProtectedRoute><NewChangePage /></ProtectedRoute>} />
@@ -29,6 +32,7 @@ export default function App() {
           <Route path="/checkpoints" element={<ProtectedRoute><CheckpointsPage /></ProtectedRoute>} />
           <Route path="/deploy" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
           <Route path="/deploy/:id" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
+          <Route path="/admin/invite" element={<ProtectedRoute roles={['admin']}><InvitePage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

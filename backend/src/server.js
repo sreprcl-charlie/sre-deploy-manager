@@ -54,6 +54,7 @@ app.use("/api/checkpoints", require("./routes/checkpoints"));
 app.use("/api/steps", require("./routes/steps"));
 app.use("/api/pdf", require("./routes/pdf"));
 app.use("/api/evidence", require("./routes/evidence"));
+app.use("/api/invite", require("./routes/invite"));
 
 // Health check
 app.get("/api/health", (_req, res) =>
