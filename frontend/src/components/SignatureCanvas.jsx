@@ -104,21 +104,21 @@ export default function SignatureCanvas({ onConfirm, onCancel }) {
         <div className="flex gap-2 mt-4">
           <button
             onClick={clear}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm transition-colors"
+            className="btn-secondary flex items-center gap-1.5 text-sm"
           >
             <RotateCcw size={14} /> Ulang
           </button>
           <div className="flex-1" />
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm transition-colors"
+            className="btn-secondary text-sm"
           >
             Batal
           </button>
           <button
             onClick={confirm}
             disabled={isEmpty}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-primary flex items-center gap-1.5 text-sm"
           >
             <Check size={14} /> Setujui & Simpan TTD
           </button>

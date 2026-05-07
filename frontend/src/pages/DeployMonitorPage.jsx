@@ -569,7 +569,7 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disa
                         timer.start();
                       }
                     }}
-                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 backdrop-blur-sm transition-all duration-200"
                     title="Mulai timer"
                   >
                     <Timer size={11} /> Start
@@ -577,7 +577,7 @@ function StepCard({ step, onAction, onAddAdjustment, onEditStep, onOverdue, disa
                 ) : (
                   <button
                     onClick={timer.stop}
-                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-900/50 hover:bg-amber-800/50 text-amber-300 transition-colors"
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 text-amber-200 backdrop-blur-sm transition-all duration-200"
                     title="Pause timer"
                   >
                     <Square size={11} /> Stop

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import StatusBadge from "../components/StatusBadge";
@@ -74,6 +74,49 @@ const ACCENTS = {
   },
 };
 
+// Slot-machine spinning number — spins randomly then settles on real value
+function SlotNumber({ value, color, textShadow }) {
+  const [display, setDisplay] = useState(null);
+  const [animKey, setAnimKey] = useState(0);
+  const hasSpun = useRef(false);
+  const tidRef = useRef(null);
+
+  useEffect(() => {
+    if (value === null || value === undefined) { setDisplay(null); return; }
+    if (hasSpun.current) { setDisplay(value); return; }
+    hasSpun.current = true;
+
+    // Timing schedule: starts fast, decelerates — like a slot reel slowing down
+    const schedule = [38, 48, 60, 75, 94, 118, 148, 186, 234, 295, 373];
+    let step = 0;
+
+    const tick = () => {
+      if (step < schedule.length - 1) {
+        setDisplay(Math.floor(Math.random() * (Math.max(value * 2, 9) + 1)));
+        setAnimKey((k) => k + 1);
+        step++;
+        tidRef.current = setTimeout(tick, schedule[step]);
+      } else {
+        setDisplay(value);
+        setAnimKey((k) => k + 1);
+      }
+    };
+
+    tidRef.current = setTimeout(tick, schedule[0]);
+    return () => clearTimeout(tidRef.current);
+  }, [value]);
+
+  return (
+    <span
+      key={animKey}
+      className="slot-digit text-3xl font-bold tabular-nums font-mono"
+      style={{ color, textShadow }}
+    >
+      {display ?? "\u2014"}
+    </span>
+  );
+}
+
 function StatCard({ label, value, icon: Icon, accent = "sky", live = false }) {
   const a = ACCENTS[accent];
   return (
@@ -98,12 +141,7 @@ function StatCard({ label, value, icon: Icon, accent = "sky", live = false }) {
           <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-3">
             {label}
           </p>
-          <p
-            className="text-3xl font-bold tabular-nums font-mono"
-            style={{ color: a.value, textShadow: a.valueShadow }}
-          >
-            {value ?? "—"}
-          </p>
+          <SlotNumber value={value} color={a.value} textShadow={a.valueShadow} />
         </div>
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -233,17 +271,17 @@ export default function DashboardPage() {
 
         {/* ── Stat Cards ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-          <StatCard label="Total CR" value={stats.total} icon={FileText} accent="sky" />
-          <StatCard label="Menunggu Deploy" value={stats.approved} icon={Clock} accent="yellow" />
+          <StatCard label="Total CMF" value={loading ? null : stats.total} icon={FileText} accent="sky" />
+          <StatCard label="Menunggu Deploy" value={loading ? null : stats.approved} icon={Clock} accent="yellow" />
           <StatCard
             label="Sedang Berjalan"
-            value={stats.inProgress}
+            value={loading ? null : stats.inProgress}
             icon={Zap}
             accent="green"
             live={stats.inProgress > 0}
           />
-          <StatCard label="Success" value={stats.success} icon={CheckCircle} accent="teal" />
-          <StatCard label="Rollback" value={stats.rollback} icon={RotateCcw} accent="red" />
+          <StatCard label="Success" value={loading ? null : stats.success} icon={CheckCircle} accent="teal" />
+          <StatCard label="Rollback" value={loading ? null : stats.rollback} icon={RotateCcw} accent="red" />
         </div>
 
         {/* ── Main Grid ────────────────────────────────────────── */}

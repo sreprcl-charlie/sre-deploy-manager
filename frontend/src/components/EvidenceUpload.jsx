@@ -109,7 +109,7 @@ export default function EvidenceUpload({ crId, readOnly = false }) {
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors disabled:opacity-50"
+            className="btn-primary flex items-center gap-1.5 text-xs"
           >
             {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
             Upload
@@ -173,7 +173,7 @@ export default function EvidenceUpload({ crId, readOnly = false }) {
               {!readOnly && (
                 <button
                   onClick={() => handleDelete(ev)}
-                  className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-900/80 hover:bg-red-700 text-red-300 rounded p-0.5"
+                  className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded bg-red-950/70 hover:bg-red-900/80 border border-red-700/40 backdrop-blur-sm text-red-300"
                   title="Hapus evidence"
                 >
                   <Trash2 size={12} />

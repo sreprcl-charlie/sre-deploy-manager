@@ -28,7 +28,19 @@
   }
 }
 
+/* ── Casino slot reel animation ── */
+@keyframes slotTick {
+  0%   { transform: translateY(-55%); opacity: 0;   filter: blur(3px); }
+  55%  { transform: translateY(7%);   opacity: 1;   filter: blur(0px); }
+  75%  { transform: translateY(-2%); }
+  100% { transform: translateY(0%);   opacity: 1;   filter: blur(0px); }
+}
+
 @layer components {
+  .slot-digit {
+    display: inline-block;
+    animation: slotTick 0.13s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
   .card {
     background: rgba(255, 255, 255, 0.035);
     backdrop-filter: blur(20px);
@@ -37,26 +49,129 @@
     border-radius: 0.875rem;
     padding: 1.25rem;
   }
+  /* ── btn-primary: sky glass ── */
   .btn-primary {
-    @apply bg-sky-500 hover:bg-sky-400 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: rgb(186, 230, 253);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.09);
   }
+  .btn-primary:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+  /* ── btn-secondary: neutral glass ── */
   .btn-secondary {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    @apply text-slate-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer;
+    color: rgb(203, 213, 225);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.16);
   }
-  .btn-danger {
-    @apply bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200;
+  .btn-secondary:active { transform: scale(0.97); }
+  .btn-secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
   }
+  /* ── btn-success: emerald glass ── */
   .btn-success {
-    @apply bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200;
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+    background: rgba(34, 197, 94, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: rgb(167, 243, 208);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  }
+  .btn-success:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  .btn-success:active { transform: scale(0.97); }
+  .btn-success:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+  /* ── btn-danger: red glass ── */
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: rgb(252, 165, 165);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 26px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  .btn-danger:active { transform: scale(0.97); }
+  .btn-danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+  /* ── btn-warning: amber glass (timer stop, caution actions) ── */
+  .btn-warning {
+    background: rgba(251, 191, 36, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: rgb(253, 230, 138);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  .btn-warning:hover {
+    background: rgba(251, 191, 36, 0.18);
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  .btn-warning:active { transform: scale(0.97); }
+  .btn-warning:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
   }
   .input {
     background: rgba(255, 255, 255, 0.04);
