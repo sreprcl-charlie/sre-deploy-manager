@@ -18,8 +18,14 @@ export default {
         },
       },
       fontFamily: {
-        mono: ['"JetBrains Mono"', "monospace"],
-        sans: ['"Inter"', "sans-serif"],
+        sans: [
+          "-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text",
+          "Helvetica Neue", "Segoe UI", "Roboto", "Arial", "sans-serif",
+        ],
+        mono: [
+          "ui-monospace", "SF Mono", "SFMono-Regular", "Menlo",
+          "Monaco", "Cascadia Code", "Consolas", "Liberation Mono", "monospace",
+        ],
       },
     },
   },

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS change_requests (
   id                  SERIAL PRIMARY KEY,
-  cmf_number          VARCHAR(50) UNIQUE NOT NULL,   -- e.g. CMF-2025-001
+  cr_number           VARCHAR(50) UNIQUE NOT NULL,   -- e.g. CHG0012345
   title               TEXT NOT NULL,
   description         TEXT,
   change_type         VARCHAR(50) NOT NULL,           -- normal | emergency | standard
@@ -147,34 +147,6 @@ ALTER TABLE change_requests
   ADD COLUMN IF NOT EXISTS signature_user_id  INTEGER REFERENCES users(id),
   ADD COLUMN IF NOT EXISTS signature_at       TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS signature_name     VARCHAR(200);
-
--- ─────────────────────────────────────────────
--- MIGRATION: Rename cr_number → cmf_number
--- ─────────────────────────────────────────────
-DO $$ BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name='change_requests' AND column_name='cr_number'
-  ) THEN
-    ALTER TABLE change_requests RENAME COLUMN cr_number TO cmf_number;
-  END IF;
-END $$;
-
--- ─────────────────────────────────────────────
--- INVITE TOKENS (admin-generated public signup links)
--- ─────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS invite_tokens (
-  id             SERIAL PRIMARY KEY,
-  token          VARCHAR(64) UNIQUE NOT NULL,
-  allowed_squads TEXT[]      NOT NULL DEFAULT '{core,digital}',  -- core | digital | both
-  label          VARCHAR(200),                                    -- optional note by admin
-  created_by     INTEGER REFERENCES users(id),
-  expires_at     TIMESTAMPTZ NOT NULL,
-  used_by        INTEGER REFERENCES users(id),
-  used_at        TIMESTAMPTZ,
-  is_revoked     BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at     TIMESTAMPTZ DEFAULT NOW()
-);
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
