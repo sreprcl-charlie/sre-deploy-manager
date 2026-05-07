@@ -32,7 +32,7 @@ export default function App() {
           <Route path="/checkpoints" element={<ProtectedRoute><CheckpointsPage /></ProtectedRoute>} />
           <Route path="/deploy" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
           <Route path="/deploy/:id" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
-          <Route path="/admin/invite" element={<ProtectedRoute roles={['admin']}><InvitePage /></ProtectedRoute>} />
+          <Route path="/admin/invite" element={<ProtectedRoute roles={['superuser']}><InvitePage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -65,7 +65,7 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-0.5">
-          {[...navItems, ...(user?.role === "admin" ? adminNavItems : [])].map(({ to, label, icon: Icon }) => {
+          {[...navItems, ...(user?.role === "superuser" ? adminNavItems : [])].map(({ to, label, icon: Icon }) => {
             const active =
               location.pathname === to ||
               (to !== "/" && location.pathname.startsWith(to));

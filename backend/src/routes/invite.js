@@ -21,7 +21,7 @@ function normalizeSquads(allowed_squads) {
 // Body: { allowed_squads: ["core"] | ["digital"] | ["core","digital"],
 //         label?: string, expires_hours?: number }
 // ─────────────────────────────────────────────────────────────────────
-router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
+router.post("/", authMiddleware, requireRole("superuser"), async (req, res) => {
   const { label, expires_hours = 72 } = req.body;
   let { allowed_squads } = req.body;
 
@@ -57,7 +57,7 @@ router.post("/", authMiddleware, requireRole("admin"), async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────
 // ADMIN: GET /api/invite — list all invite tokens
 // ─────────────────────────────────────────────────────────────────────
-router.get("/", authMiddleware, requireRole("admin"), async (_req, res) => {
+router.get("/", authMiddleware, requireRole("superuser"), async (_req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT i.id, i.token, i.allowed_squads, i.label,
@@ -79,7 +79,7 @@ router.get("/", authMiddleware, requireRole("admin"), async (_req, res) => {
 // ─────────────────────────────────────────────────────────────────────
 // ADMIN: DELETE /api/invite/:id — revoke an invite token
 // ─────────────────────────────────────────────────────────────────────
-router.delete("/:id", authMiddleware, requireRole("admin"), async (req, res) => {
+router.delete("/:id", authMiddleware, requireRole("superuser"), async (req, res) => {
   const { id } = req.params;
   try {
     const { rowCount } = await pool.query(
