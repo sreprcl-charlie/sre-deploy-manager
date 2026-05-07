@@ -9,11 +9,13 @@ import {
   User,
   Shield,
   Link2,
+  Layers,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/changes", label: "Change Mgmt", icon: FileText },
+  { to: "/ivanti-changes", label: "Ivanti Changes", icon: Layers },
   { to: "/checkpoints", label: "Checkpoints", icon: CheckSquare },
   { to: "/deploy", label: "Deploy Monitor", icon: Activity },
 ];

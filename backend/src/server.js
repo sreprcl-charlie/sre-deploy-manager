@@ -55,6 +55,7 @@ app.use("/api/steps", require("./routes/steps"));
 app.use("/api/pdf", require("./routes/pdf"));
 app.use("/api/evidence", require("./routes/evidence"));
 app.use("/api/invite", require("./routes/invite"));
+app.use("/api/ivanti", require("./routes/ivanti"));
 
 // Health check
 app.get("/api/health", (_req, res) =>
@@ -106,4 +107,13 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 SRE Deploy Manager API  →  http://0.0.0.0:${PORT}`);
   console.log(`   Env: ${process.env.NODE_ENV}`);
+
+  // ── Ivanti sync (start after DB is ready via Railway healthcheck)
+  if (process.env.IVANTI_API_KEY && process.env.IVANTI_BASE_URL) {
+    const { startSync } = require("./services/ivantiSync");
+    startSync();
+    console.log("   Ivanti sync: every 5 minutes");
+  } else {
+    console.log("   Ivanti sync: SKIPPED (IVANTI_API_KEY / IVANTI_BASE_URL not set)");
+  }
 });

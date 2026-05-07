@@ -11,6 +11,7 @@ import ChangeDetailPage from './pages/ChangeDetailPage';
 import CheckpointsPage  from './pages/CheckpointsPage';
 import DeployMonitorPage from './pages/DeployMonitorPage';
 import InvitePage       from './pages/InvitePage';
+import IvantiChangesPage from './pages/IvantiChangesPage';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/deploy" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
           <Route path="/deploy/:id" element={<ProtectedRoute><DeployMonitorPage /></ProtectedRoute>} />
           <Route path="/admin/invite" element={<ProtectedRoute roles={['superuser']}><InvitePage /></ProtectedRoute>} />
+          <Route path="/ivanti-changes" element={<ProtectedRoute><IvantiChangesPage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

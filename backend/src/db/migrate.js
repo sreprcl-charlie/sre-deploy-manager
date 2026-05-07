@@ -147,6 +147,36 @@ ALTER TABLE change_requests
   ADD COLUMN IF NOT EXISTS signature_user_id  INTEGER REFERENCES users(id),
   ADD COLUMN IF NOT EXISTS signature_at       TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS signature_name     VARCHAR(200);
+
+-- ─────────────────────────────────────────────
+-- IVANTI CHANGES (synced from Ivanti HEAT)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS ivanti_changes (
+  id                SERIAL PRIMARY KEY,
+  change_id         VARCHAR(200) UNIQUE NOT NULL,  -- RecId from Ivanti
+  change_number     VARCHAR(50),                   -- e.g. CHG0012345
+  subject           TEXT,
+  status            VARCHAR(100),
+  priority          VARCHAR(50),
+  urgency           VARCHAR(50),
+  category          VARCHAR(200),
+  service           VARCHAR(200),
+  change_type       VARCHAR(100),
+  requested_by      VARCHAR(200),
+  owner             VARCHAR(200),
+  owner_team        VARCHAR(200),
+  scheduled_start   TIMESTAMPTZ,
+  scheduled_end     TIMESTAMPTZ,
+  description       TEXT,
+  reason            TEXT,
+  raw_data          JSONB,
+  created_at_ivanti TIMESTAMPTZ,
+  synced_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ivanti_changes_number   ON ivanti_changes(change_number);
+CREATE INDEX IF NOT EXISTS idx_ivanti_changes_status   ON ivanti_changes(status);
+CREATE INDEX IF NOT EXISTS idx_ivanti_changes_synced   ON ivanti_changes(synced_at DESC);
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
