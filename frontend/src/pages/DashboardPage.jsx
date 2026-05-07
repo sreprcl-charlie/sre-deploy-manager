@@ -298,7 +298,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-mono text-xs text-sky-400">{c.cr_number}</span>
+                        <span className="font-mono text-xs text-sky-400">{c.cmf_number}</span>
                         <span
                           className={`text-xs font-semibold uppercase ${priorityColor(c.priority)}`}
                         >
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-300 truncate">{c.title}</p>
                       <p className="text-xs text-slate-600">
-                        <span className="font-mono">{c.cr_number}</span> ·{" "}
+                        <span className="font-mono">{c.cmf_number}</span> ·{" "}
                         {c.environment?.toUpperCase()}
                       </p>
                     </div>

@@ -74,12 +74,12 @@ export default function CheckpointsPage() {
           <div className="h-10 w-64 bg-slate-800 rounded-lg animate-pulse" />
         ) : changes.length === 0 ? (
           <div className="card text-slate-500 text-sm">
-            Tidak ada Change Request aktif dengan status approved / in_progress
+            Tidak ada CMF aktif dengan status approved / in_progress
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-64 max-w-xs">
-              <label className="label">Pilih Change Request</label>
+              <label className="label">Pilih CMF</label>
               <select
                 className="input"
                 value={selectedCr}
@@ -87,7 +87,7 @@ export default function CheckpointsPage() {
               >
                 {changes.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.cr_number} — {c.title}
+                    {c.cmf_number} — {c.title}
                   </option>
                 ))}
               </select>

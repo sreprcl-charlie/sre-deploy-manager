@@ -114,7 +114,7 @@ router.get("/:id", async (req, res) => {
 // POST /api/changes  — create new CR
 router.post("/", async (req, res) => {
   const {
-    cr_number,
+    cmf_number,
     title,
     description,
     change_type,
@@ -138,14 +138,14 @@ router.post("/", async (req, res) => {
     const { rows } = await client.query(
       `
       INSERT INTO change_requests
-        (cr_number, title, description, change_type, change_squad, priority, environment,
+        (cmf_number, title, description, change_type, change_squad, priority, environment,
          affected_systems, scheduled_start, scheduled_end,
          rollback_plan, cab_approved_by, cab_approved_at, created_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *
     `,
       [
-        cr_number,
+        cmf_number,
         title,
         description,
         change_type,
@@ -201,7 +201,7 @@ router.post("/", async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     if (err.code === "23505")
-      return res.status(409).json({ error: "CR number already exists" });
+      return res.status(409).json({ error: "CMF number already exists" });
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
   } finally {
@@ -221,7 +221,7 @@ router.patch("/:id", async (req, res) => {
     );
     if (rows.length && rows[0].change_squad === "core" && !rows[0].signature_data) {
       return res.status(403).json({
-        error: "CR Squad Core harus mendapat TTD digital Approver terlebih dahulu",
+        error: "CMF Squad Core harus mendapat TTD digital Approver terlebih dahulu",
       });
     }
   }

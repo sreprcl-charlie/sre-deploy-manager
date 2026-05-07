@@ -41,7 +41,7 @@ export default function NewChangePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    cr_number: "",
+    cmf_number: "",
     title: "",
     description: "",
     change_type: "normal",
@@ -100,10 +100,10 @@ export default function NewChangePage() {
         steps,
       };
       const res = await api.post("/changes", payload);
-      toast.success(`CR ${res.data.change.cr_number} berhasil dibuat!`);
+      toast.success(`CMF ${res.data.change.cmf_number} berhasil dibuat!`);
       navigate(`/changes/${res.data.change.id}`);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Gagal membuat Change Request");
+      toast.error(err.response?.data?.error || "Gagal membuat CMF");
     } finally {
       setLoading(false);
     }
@@ -114,10 +114,10 @@ export default function NewChangePage() {
       <div className="p-6 max-w-4xl mx-auto space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-100">
-            Buat Change Request Baru
+            Buat CMF Baru
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Isi data CR yang sudah di-approve CAB, checkpoint, dan runbook steps
+            Isi data CMF yang sudah di-approve CAB, checkpoint, dan runbook steps
           </p>
         </div>
 
@@ -125,18 +125,18 @@ export default function NewChangePage() {
           {/* ── CR Info ── */}
           <Section
             id="info"
-            title="Informasi Change Request"
+            title="Informasi CMF"
             open={openSections.info}
             onToggle={toggleSection}
           >
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">CR Number *</label>
+                <label className="label">CMF Number *</label>
                 <input
                   className="input font-mono"
-                  placeholder="CHG0012345"
-                  value={form.cr_number}
-                  onChange={(e) => setField("cr_number", e.target.value)}
+                  placeholder="CMF-2025-001"
+                  value={form.cmf_number}
+                  onChange={(e) => setField("cmf_number", e.target.value)}
                   required
                 />
               </div>

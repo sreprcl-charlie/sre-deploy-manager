@@ -72,7 +72,7 @@ export default function ChangeDetailPage() {
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `deployment-report-${data?.change?.cr_number}.pdf`;
+      a.download = `deployment-report-${data?.change?.cmf_number}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("PDF berhasil diunduh");
@@ -94,7 +94,7 @@ export default function ChangeDetailPage() {
   if (!data)
     return (
       <Layout>
-        <div className="p-6 text-red-400">Change Request tidak ditemukan</div>
+        <div className="p-6 text-red-400">CMF tidak ditemukan</div>
       </Layout>
     );
 
@@ -140,7 +140,7 @@ export default function ChangeDetailPage() {
             <h1 className="text-xl font-bold text-slate-100">{cr.title}</h1>
             <div className="flex items-center gap-3 mt-1">
               <span className="font-mono text-sky-400 text-sm">
-                {cr.cr_number}
+                {cr.cmf_number}
               </span>
               <StatusBadge status={cr.status} />
               <span className="text-xs text-slate-500 uppercase">

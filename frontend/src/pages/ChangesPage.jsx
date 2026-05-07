@@ -41,7 +41,7 @@ export default function ChangesPage() {
     const q = search.toLowerCase();
     const matchQ =
       !q ||
-      c.cr_number.toLowerCase().includes(q) ||
+      c.cmf_number.toLowerCase().includes(q) ||
       c.title.toLowerCase().includes(q);
     const matchSt = !filterStatus || c.status === filterStatus;
     const matchEn = !filterEnv || c.environment === filterEnv;
@@ -57,14 +57,14 @@ export default function ChangesPage() {
               Change Management
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              Daftar Change Request yang sudah di-approve CAB
+              Daftar CMF yang sudah di-approve CAB
             </p>
           </div>
           <Link
             to="/changes/new"
             className="btn-primary flex items-center gap-2"
           >
-            <Plus size={16} /> New CR
+            <Plus size={16} /> New CMF
           </Link>
         </div>
 
@@ -77,7 +77,7 @@ export default function ChangesPage() {
             />
             <input
               className="input pl-9"
-              placeholder="Cari CR number atau judul..."
+              placeholder="Cari CMF number atau judul..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -130,7 +130,7 @@ export default function ChangesPage() {
               <thead>
                 <tr className="border-b border-slate-700 text-left">
                   <th className="px-4 py-3 text-slate-500 font-medium">
-                    CR Number
+                    CMF Number
                   </th>
                   <th className="px-4 py-3 text-slate-500 font-medium">
                     Judul
@@ -166,7 +166,7 @@ export default function ChangesPage() {
                       className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors ${i % 2 === 0 ? "" : "bg-slate-800/30"}`}
                     >
                       <td className="px-4 py-3 font-mono text-sky-400 font-medium">
-                        {c.cr_number}
+                        {c.cmf_number}
                       </td>
                       <td className="px-4 py-3 text-slate-200 max-w-xs truncate">
                         {c.title}

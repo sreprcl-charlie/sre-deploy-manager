@@ -886,7 +886,7 @@ export default function DeployMonitorPage() {
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `deployment-report-${data?.change?.cr_number}.pdf`;
+      a.download = `deployment-report-${data?.change?.cmf_number}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("PDF berhasil diunduh");
@@ -945,7 +945,7 @@ export default function DeployMonitorPage() {
               to={`/changes/${id}`}
               className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-300 mb-1"
             >
-              <ChevronLeft size={14} /> {cr.cr_number}
+              <ChevronLeft size={14} /> {cr.cmf_number}
             </Link>
             <h1 className="text-xl font-bold text-slate-100">{cr.title}</h1>
             <div className="flex items-center gap-3 mt-1 flex-wrap">

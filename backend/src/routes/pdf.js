@@ -95,7 +95,7 @@ router.get("/:cr_id", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="deployment-report-${cr.cr_number}.pdf"`,
+      `attachment; filename="deployment-report-${cr.cmf_number}.pdf"`,
     );
     doc.pipe(res);
 
@@ -168,9 +168,9 @@ router.get("/:cr_id", async (req, res) => {
     doc.fillColor("#0f172a");
     doc.y = 110;
 
-    // ── CHANGE REQUEST INFO ───────────────────────────────────────────
-    sectionTitle("CHANGE REQUEST INFORMATION");
-    kv("CR Number", cr.cr_number);
+    // ── CMF INFO ─────────────────────────────────────────────────────
+    sectionTitle("CMF INFORMATION");
+    kv("CMF Number", cr.cmf_number);
     kv("Title", cr.title);
     kv("Description", cr.description);
     kv("Type", cr.change_type);
