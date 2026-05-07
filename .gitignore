@@ -10,6 +10,9 @@ frontend/.env.local
 # Backend env (jangan commit credentials!)
 backend/.env
 
+# K8s secret — isi dengan nilai asli, jangan di-commit
+k8s/secret.yaml
+
 # Logs
 *.log
 npm-debug.log*

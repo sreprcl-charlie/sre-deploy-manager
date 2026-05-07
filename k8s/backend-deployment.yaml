@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-deploy-backend
+  namespace: sre-tools-dev
+  labels:
+    app: sre-deploy-manager
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sre-deploy-manager
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: sre-deploy-manager
+        component: backend
+    spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+      containers:
+        - name: backend
+          image: registry.gitlab.com/altonetwork/sre-automation/sre-deploy-manager/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 4000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: FRONTEND_URL
+              value: "https://sre-deploy.local.altodev.id"
+            - name: IVANTI_BASE_URL
+              value: "http://ivanti.local.altodev.id/HEAT/api/odata/businessobject/changes"
+          envFrom:
+            - secretRef:
+                name: sre-deploy-backend-secret
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

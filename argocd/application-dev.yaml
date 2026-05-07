@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sre-deploy-manager-dev
+  namespace: argocd
+  labels:
+    app: sre-deploy-manager
+    env: dev
+spec:
+  # Change to your ArgoCD project name if not using "default"
+  project: default
+
+  source:
+    repoURL: https://gitlab.com/altonetwork/sre-automation/sre-deploy-manager.git
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sre-tools-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

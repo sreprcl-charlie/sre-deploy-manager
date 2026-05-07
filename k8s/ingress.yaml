@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sre-deploy-ingress
+  namespace: sre-tools-dev
+  labels:
+    app: sre-deploy-manager
+  annotations:
+    # Sesuaikan kalau cluster pakai annotation khusus haproxy/nginx
+    # haproxy.router.openshift.io/timeout: 60s
+spec:
+  ingressClassName: haproxy   # ganti ke "nginx" kalau pakai nginx ingress
+  tls:
+    - hosts:
+        - sre-deploy.local.altodev.id   # ganti sesuai domain kamu
+      secretName: sre-deploy-dev-tls    # secret TLS harus sudah ada di namespace
+  rules:
+    - host: sre-deploy.local.altodev.id   # ganti sesuai domain kamu
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sre-deploy-frontend
+                port:
+                  number: 80

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sre-deploy-backend
+  namespace: sre-tools-dev
+  labels:
+    app: sre-deploy-manager
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: sre-deploy-manager
+    component: backend
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP

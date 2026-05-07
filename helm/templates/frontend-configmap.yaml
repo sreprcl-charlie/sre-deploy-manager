@@ -1,0 +1,52 @@
+{{/*
+  Nginx config as a ConfigMap — backend hostname is templated to match
+  the backend ClusterIP service name within the same namespace.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sre-deploy-manager.fullname" . }}-nginx-conf
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sre-deploy-manager.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        gzip on;
+        gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+        # SPA fallback
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # API proxy → backend service
+        location /api/ {
+            proxy_pass http://{{ include "sre-deploy-manager.fullname" . }}-backend:{{ .Values.backend.port }}/api/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # WebSocket proxy → backend service
+        location /socket.io/ {
+            proxy_pass http://{{ include "sre-deploy-manager.fullname" . }}-backend:{{ .Values.backend.port }}/socket.io/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+        }
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
