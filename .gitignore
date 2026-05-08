@@ -12,6 +12,7 @@ backend/.env
 
 # K8s secret — isi dengan nilai asli, jangan di-commit
 k8s/secret.yaml
+k8s/backend-secret.yaml
 
 # Logs
 *.log
