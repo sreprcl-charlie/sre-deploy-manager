@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: sre-deploy-backend
-  namespace: sre-tools-dev
+  namespace: web-deploy-sre
   labels:
     app: sre-deploy-manager
     component: backend

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: sre-deploy-nginx-conf
-  namespace: sre-tools-dev
+  namespace: web-deploy-sre
   labels:
     app: sre-deploy-manager
     component: frontend

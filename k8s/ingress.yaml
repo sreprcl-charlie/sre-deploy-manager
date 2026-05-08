@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: sre-deploy-ingress
-  namespace: sre-tools-dev
+  namespace: web-deploy-sre
   labels:
     app: sre-deploy-manager
   annotations:
