@@ -20,6 +20,17 @@ spec:
     spec:
       imagePullSecrets:
         - name: gitlab-registry-secret
+      initContainers:
+        - name: migrate
+          image: registry.gitlab.com/altonetwork/sre-automation/sre-deploy-manager/backend:latest
+          imagePullPolicy: Always
+          command: ["node", "src/db/migrate.js"]
+          env:
+            - name: NODE_ENV
+              value: "production"
+          envFrom:
+            - secretRef:
+                name: sre-deploy-backend-secret
       containers:
         - name: backend
           image: registry.gitlab.com/altonetwork/sre-automation/sre-deploy-manager/backend:latest

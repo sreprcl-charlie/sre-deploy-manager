@@ -4,10 +4,12 @@ require("dotenv").config({
 });
 
 // Railway menyediakan DATABASE_URL; fallback ke individual vars untuk dev lokal
+// Set DATABASE_SSL=false jika postgres lokal tidak pakai SSL
+const useSSL = process.env.DATABASE_SSL !== "false";
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // diperlukan untuk Railway/Neon
+      ...(useSSL && { ssl: { rejectUnauthorized: false } }),
     })
   : new Pool({
       host: process.env.DB_HOST,
