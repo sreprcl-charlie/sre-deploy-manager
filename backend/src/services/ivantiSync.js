@@ -12,7 +12,8 @@ const https = require("https");
 const pool = require("../db/pool");
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const PAGE_SIZE = 100; // Ivanti API limit: max 100 records per request
+const PAGE_SIZE = 100; // Ivanti max records per request
+const PAGE_DELAY_MS = 500; // delay antar halaman agar tidak rate-limited
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 
@@ -91,6 +92,9 @@ async function fetchAllChanges() {
     // OData: if fewer items than page size, we're done
     if (items.length < PAGE_SIZE) break;
     skip += PAGE_SIZE;
+
+    // Delay sebelum request halaman berikutnya
+    await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
   }
 
   return all;
