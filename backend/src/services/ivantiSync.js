@@ -12,7 +12,7 @@ const https = require("https");
 const pool = require("../db/pool");
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const PAGE_SIZE = 200;
+const PAGE_SIZE = 100; // Ivanti API limit: max 100 records per request
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 
